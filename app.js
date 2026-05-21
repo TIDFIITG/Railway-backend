@@ -52,13 +52,26 @@ const connectDB = async () => {
 
 // ✅ CORS Configuration
 const corsOptions = {
- origin: process.env.NODE_ENV === 'production'
-  ? (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : '*')
-  : '*',
- credentials: false,
+
+ origin: [
+  'http://localhost:5173',
+  'https://www.tihnfr.com',
+  'https://rail-web-client-git-main-tidifitgs-projects.vercel.app'
+ ],
+
+ credentials: true,
+
  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
- allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+
+ allowedHeaders: [
+  'Content-Type',
+  'Authorization',
+  'X-Requested-With',
+  'Accept'
+ ],
+
  optionsSuccessStatus: 200
+
 };
 
 // ✅ Middleware with error handling
