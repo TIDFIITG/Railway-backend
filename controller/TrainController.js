@@ -235,26 +235,17 @@ export const getAvailableCoaches = async (req, res) => {
     }
 };
 
-// Modified function to return only NEW chain pull alerts (one-time process)
-export const getActiveChainPulls = async (req, res) => {
+// Fetch recent chain status updates for dashboard (limit to 5 most recent)
+export const getRecentChainStatus = async (req, res) => {
+
     try {
-        // Get the most recent entry for each coach_uid with pulled status
-        const activeAlerts = await Train.aggregate([
-            {
-                $match: { chain_status: "pulled" }
-            },
+
+        const recentData = await Train.aggregate([
+
             {
                 $sort: { createdAt: -1 }
             },
-            {
-                $group: {
-                    _id: "$coach_uid",
-                    latestRecord: { $first: "$$ROOT" }
-                }
-            },
-            {
-                $replaceRoot: { newRoot: "$latestRecord" }
-            },
+
             {
                 $lookup: {
                     from: "divisions",
@@ -263,10 +254,116 @@ export const getActiveChainPulls = async (req, res) => {
                     as: "divisionData"
                 }
             },
+
             {
                 $addFields: {
-                    train_Name: { $arrayElemAt: ["$divisionData.train_Name", 0] },
-                    train_Number: { $arrayElemAt: ["$divisionData.train_Number", 0] },
+                    train_Name: {
+                        $arrayElemAt: [
+                            "$divisionData.train_Name",
+                            0
+                        ]
+                    },
+
+                    train_Number: {
+                        $arrayElemAt: [
+                            "$divisionData.train_Number",
+                            0
+                        ]
+                    }
+                }
+            },
+
+            {
+                $project: {
+                    divisionData: 0
+                }
+            },
+
+            {
+                $limit: 5
+            }
+
+        ]);
+
+        res.status(200).json({
+            success: true,
+            alerts: recentData
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch recent chain status'
+        });
+
+    }
+
+};
+
+// Modified function to return only NEW chain pull alerts (one-time process)
+export const getActiveChainPulls = async (req, res) => {
+
+    try {
+
+        // Get the most recent entry for each coach_uid with pulled status
+        const activeAlerts = await Train.aggregate([
+
+            {
+                $match: {
+                    chain_status: "pulled"
+                }
+            },
+
+            {
+                $sort: {
+                    createdAt: -1
+                }
+            },
+
+            {
+                $group: {
+                    _id: "$coach_uid",
+                    latestRecord: {
+                        $first: "$$ROOT"
+                    }
+                }
+            },
+
+            {
+                $replaceRoot: {
+                    newRoot: "$latestRecord"
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "divisions",
+                    localField: "division",
+                    foreignField: "_id",
+                    as: "divisionData"
+                }
+            },
+
+            {
+                $addFields: {
+
+                    train_Name: {
+                        $arrayElemAt: [
+                            "$divisionData.train_Name",
+                            0
+                        ]
+                    },
+
+                    train_Number: {
+                        $arrayElemAt: [
+                            "$divisionData.train_Number",
+                            0
+                        ]
+                    },
+
                     coach_name: {
                         $let: {
                             vars: {
@@ -274,8 +371,18 @@ export const getActiveChainPulls = async (req, res) => {
                                     $arrayElemAt: [
                                         {
                                             $filter: {
-                                                input: { $arrayElemAt: ["$divisionData.coach_uid", 0] },
-                                                cond: { $eq: ["$$this.uid", "$coach_uid"] }
+                                                input: {
+                                                    $arrayElemAt: [
+                                                        "$divisionData.coach_uid",
+                                                        0
+                                                    ]
+                                                },
+                                                cond: {
+                                                    $eq: [
+                                                        "$$this.uid",
+                                                        "$coach_uid"
+                                                    ]
+                                                }
                                             }
                                         },
                                         0
@@ -285,48 +392,47 @@ export const getActiveChainPulls = async (req, res) => {
                             in: "$$coach.coach_name"
                         }
                     }
+
                 }
             },
+
             {
                 $project: {
-                    divisionData: 0 // Remove the divisionData field from output
+                    divisionData: 0
                 }
             },
+
             {
-                $sort: { createdAt: -1 }
+                $sort: {
+                    createdAt: -1
+                }
             },
+
             {
-                $limit: 10
+                $limit: 5
             }
+
         ]);
 
-        // Filter out alerts that have already been sent to frontend
-        const newAlerts = activeAlerts.filter(alert => {
-            const alertKey = `${alert.coach_uid}-${alert._id}`;
-            if (!sentAlerts.has(alertKey)) {
-                sentAlerts.add(alertKey); // Mark as sent
-                return true;
-            }
-            return false;
+        res.status(200).json({
+            success: true,
+            alerts: activeAlerts
         });
 
-        // Only log if there are new alerts
-        if (newAlerts.length > 0) {
-            await logActivity(`Found ${newAlerts.length} new chain pull alerts to send to frontend.`, 'info');
-        }
-        
-        res.status(200).json({
-            message: "Active chain pulls fetched successfully!",
-            alerts: newAlerts // Return only new alerts
-        });
     } catch (error) {
-        await logActivity(`Get Active Chain Pulls: An error occurred. Error: ${error.message}`, 'error');
-        console.error("Error fetching active chain pulls:", error);
+
+        console.error(
+            'Error fetching active chain pulls:',
+            error
+        );
+
         res.status(500).json({
-            message: "An error occurred while fetching active chain pulls",
-            error: error.message
+            success: false,
+            message: 'Failed to fetch active chain pulls'
         });
+
     }
+
 };
 
 // Optional: Add a function to clear sent alerts (useful for testing or manual reset)

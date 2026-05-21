@@ -4,9 +4,10 @@ import {
       getTrainDetails, 
       getAvailableCoaches,
       getActiveChainPulls,
-      getChainStatusStats
+      getChainStatusStats,
+      getRecentChainStatus
 } from '../controller/TrainController.js';
-  
+
 const trainRouter = express.Router();
 
 // Existing Routes
@@ -24,6 +25,9 @@ trainRouter.post('/get-coach', getAvailableCoaches);
 
 // Alternative endpoint to get active chain pulls (unique per train-coach combination)
 trainRouter.get('/active-chain-pulls', getActiveChainPulls);
+
+// Get recent chain status for all trains/coaches (for dashboard)
+trainRouter.get('/recent-chain-status', getRecentChainStatus);
 
 // Get chain status statistics for dashboard
 trainRouter.get('/chain-stats', getChainStatusStats);
