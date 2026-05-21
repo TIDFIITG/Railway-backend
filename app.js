@@ -261,7 +261,7 @@ const startServer = async () => {
    console.log(`✅ Server running on port: ${PORT}`);
    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-   console.log(`📡 Service URL: https://rail-web-server.onrender.com`);
+   console.log(`📡 Service URL: https://rail-web-server-r7z1.onrender.com`);
   });
 
   // Step 3: Server error handling
@@ -282,7 +282,7 @@ const startServer = async () => {
     console.log('🔄 Keep-alive service will start in 2 minutes');
     setInterval(async () => {
      try {
-      const response = await fetch('https://rail-web-server.onrender.com/health');
+      const response = await fetch('https://rail-web-server-r7z1.onrender.com/health');
       console.log(`🏓 Keep-alive: ${response.status}`);
      } catch (error) {
       console.log(`❌ Keep-alive failed: ${error.message}`);
