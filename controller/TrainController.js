@@ -280,7 +280,7 @@ export const getRecentChainStatus = async (req, res) => {
             },
 
             {
-                $limit: 5
+                $limit: 30
             }
 
         ]);
@@ -307,6 +307,7 @@ export const getRecentChainStatus = async (req, res) => {
 export const getActiveChainPulls = async (req, res) => {
 
     try {
+    console.log("ACTIVE CHAIN PULLS FUNCTION RUNNING");
 
         // Get the most recent entry for each coach_uid with pulled status
         const activeAlerts = await Train.aggregate([
@@ -409,7 +410,7 @@ export const getActiveChainPulls = async (req, res) => {
             },
 
             {
-                $limit: 5
+                $limit: 30
             }
 
         ]);
