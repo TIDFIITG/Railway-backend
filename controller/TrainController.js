@@ -209,13 +209,7 @@ export const getAvailableCoaches = async (req, res) => {
         }));
 
         // Check which coaches have active train entries
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-        const activeCoachUIDs = await Train.distinct('coach_uid', {
-        division: division._id,
-        chain_status: "pulled",
-        createdAt: { $gte: fiveMinutesAgo }
-        });
+        const activeCoachUIDs = await Train.distinct('coach_uid', { division: division._id });
 
         const coachesWithStatus = availableCoaches.map(coach => ({
             ...coach,
