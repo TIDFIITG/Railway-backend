@@ -43,6 +43,19 @@ export const addTrainDetails = async (req, res) => {
     try {
         const { coach_uid, chain_status, latitude, longitude, temperature, error, memory, humidity, date, time } = req.body;
 
+        // Reject invalid GPS coordinates
+        if (Number(latitude) === 0 && Number(longitude) === 0) {
+            await logActivity(
+                `Rejected train data for Coach UID: ${coach_uid}. Invalid GPS coordinates (0,0).`,
+                'warning'
+            );
+
+            return res.status(400).json({
+                success: false,
+                message: "Invalid GPS coordinates. Data not saved."
+            });
+        }
+
         // Validate required fields
         if (!coach_uid) {
             await logActivity(`Add Train Details: Missing required field - coach_uid: ${coach_uid}`, 'warning');
