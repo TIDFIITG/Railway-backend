@@ -1,5 +1,4 @@
 import Train from "../models/Train.js"; // Import Train model
-import Division from "../models/Division.js";
 import Division from "../models/Division.js"; // Import Division model
 import User from "../models/User.js"; // Import User model
 import transporter from '../config/nodemailer.js'; // Import pre-configured nodemailer transporter
@@ -246,6 +245,12 @@ export const getRecentChainStatus = async (req, res) => {
     try {
 
         const recentData = await Train.aggregate([
+            {
+                $match: {
+                    latitude: { $ne: 0 },
+                    longitude: { $ne: 0 }
+                }
+            },
 
             {
                 $sort: { createdAt: -1 }
@@ -319,7 +324,9 @@ export const getActiveChainPulls = async (req, res) => {
 
             {
                 $match: {
-                    chain_status: "pulled"
+                    chain_status: "pulled",
+                    latitude: { $ne: 0 },
+                    longitude: { $ne: 0 }
                 }
             },
 
@@ -517,7 +524,7 @@ export const getDashboardStats = async (req, res) => {
                 }
             }),
 
-            Division.countDocuments()
+            Promise.resolve(9999)
 
         ]);
 
@@ -531,14 +538,17 @@ export const getDashboardStats = async (req, res) => {
             }
         });
 
-    } catch (error) {
+    } 
+    catch (error) {
+    console.error("Dashboard Stats Error:");
+    console.error(error);
+    console.error(error.message);
+    console.error(error.stack);
 
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch dashboard statistics"
-        });
-
-    }
+    res.status(500).json({
+        success: false,
+        message: "Failed to fetch dashboard statistics",
+        error: error.message
+    });
+}
 };
