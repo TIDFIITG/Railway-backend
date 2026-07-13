@@ -421,10 +421,6 @@ export const getActiveChainPulls = async (req, res) => {
                 }
             },
 
-            {
-                $limit: 30
-            }
-
         ]);
 
         res.status(200).json({
