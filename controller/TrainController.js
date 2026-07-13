@@ -492,3 +492,61 @@ export const getChainStatusStats = async (req, res) => {
         });
     }
 };
+
+
+// Dashboard statistics
+export const getDashboardStats = async (req, res) => {
+    try {
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        lastWeek.setHours(0, 0, 0, 0);
+
+        const [
+            todayChainPulls,
+            weeklyChainPulls,
+            activeTrains
+        ] = await Promise.all([
+
+            Train.countDocuments({
+                chain_status: "pulled",
+                createdAt: {
+                    $gte: today
+                }
+            }),
+
+            Train.countDocuments({
+                chain_status: "pulled",
+                createdAt: {
+                    $gte: lastWeek
+                }
+            }),
+
+            Train.countDocuments()
+
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                todayChainPulls,
+                weeklyChainPulls,
+                activeTrains,
+                averageResponseTime: "N/A"
+            }
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch dashboard statistics"
+        });
+
+    }
+};

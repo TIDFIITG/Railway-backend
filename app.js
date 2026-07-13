@@ -29,23 +29,32 @@ const connectDB = async () => {
  while (retryCount < maxRetries) {
   try {
    console.log(`🔄 Attempting database connection (attempt ${retryCount + 1}/${maxRetries})`);
+
    if (mongoose.connection.readyState === 1) {
     console.log("✅ Database connected successfully");
     return;
    }
+
    console.log("✅ Database connected successfully");
    return;
+
   } catch (error) {
+
    retryCount++;
-   console.error(`❌ Database connection failed (attempt ${retryCount}/${maxRetries}):`, error.message);
+
+   console.error(
+    `❌ Database connection failed (attempt ${retryCount}/${maxRetries}):`,
+    error.message
+   );
 
    if (retryCount === maxRetries) {
     console.error("💥 Max database connection retries reached. Exiting...");
     process.exit(1);
    }
 
-   // Wait before retry (exponential backoff)
-   await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+   await new Promise(resolve =>
+     setTimeout(resolve, Math.pow(2, retryCount) * 1000)
+   );
   }
  }
 };

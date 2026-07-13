@@ -1,11 +1,12 @@
 import express from 'express';
-import { 
-      addTrainDetails, 
-      getTrainDetails, 
+import {
+      addTrainDetails,
+      getTrainDetails,
       getAvailableCoaches,
       getActiveChainPulls,
       getChainStatusStats,
-      getRecentChainStatus
+      getRecentChainStatus,
+      getDashboardStats
 } from '../controller/TrainController.js';
 
 const trainRouter = express.Router();
@@ -31,5 +32,7 @@ trainRouter.get('/recent-chain-status', getRecentChainStatus);
 
 // Get chain status statistics for dashboard
 trainRouter.get('/chain-stats', getChainStatusStats);
+
+trainRouter.get('/dashboard-stats', getDashboardStats);
 
 export default trainRouter;
