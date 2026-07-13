@@ -1,4 +1,5 @@
 import Train from "../models/Train.js"; // Import Train model
+import Division from "../models/Division.js";
 import Division from "../models/Division.js"; // Import Division model
 import User from "../models/User.js"; // Import User model
 import transporter from '../config/nodemailer.js'; // Import pre-configured nodemailer transporter
@@ -516,7 +517,7 @@ export const getDashboardStats = async (req, res) => {
                 }
             }),
 
-            Train.countDocuments()
+            Division.countDocuments()
 
         ]);
 
