@@ -149,11 +149,10 @@ export const getTrainDetails = async (req, res) => {
             return res.status(400).json({ message: "Coach UID is required." });
         }
 
+
         const trains = await Train.find({
-            coach_uid,
-            latitude: { $ne: 0 },
-            longitude: { $ne: 0 }
-        });
+                coach_uid
+            });
 
         if (trains.length === 0) {
             await logActivity(`Get Train Details: No details found for Coach UID: ${coach_uid}.`, 'info');
