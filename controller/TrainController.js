@@ -524,7 +524,7 @@ export const getDashboardStats = async (req, res) => {
                 }
             }),
 
-            Promise.resolve(9999)
+            Division.countDocuments()
 
         ]);
 
@@ -540,15 +540,11 @@ export const getDashboardStats = async (req, res) => {
 
     } 
     catch (error) {
-    console.error("Dashboard Stats Error:");
     console.error(error);
-    console.error(error.message);
-    console.error(error.stack);
 
     res.status(500).json({
         success: false,
-        message: "Failed to fetch dashboard statistics",
-        error: error.message
+        message: "Failed to fetch dashboard statistics"
     });
 }
 };
