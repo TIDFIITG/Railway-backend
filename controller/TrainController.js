@@ -246,8 +246,8 @@ export const getRecentChainStatus = async (req, res) => {
         const recentData = await Train.aggregate([
             {
                 $match: {
-                    latitude: { $ne: 0 },
-                    longitude: { $ne: 0 }
+                    latitude: { $ne: "0" },
+                    longitude: { $ne: "0" }
                 }
             },
 
@@ -320,8 +320,8 @@ export const getActiveChainPulls = async (req, res) => {
             {
                 $match: {
                     chain_status: "pulled",
-                    latitude: { $ne: 0 },
-                    longitude: { $ne: 0 }
+                    latitude: { $ne: "0" },
+longitude: { $ne: "0" }
                 }
             },
 
