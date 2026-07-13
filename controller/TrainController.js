@@ -151,7 +151,9 @@ export const getTrainDetails = async (req, res) => {
 
 
         const trains = await Train.find({
-                coach_uid
+                coach_uid,
+                latitude: { $ne: "0" },
+                longitude: { $ne: "0" }
             });
 
         if (trains.length === 0) {
@@ -321,7 +323,7 @@ export const getActiveChainPulls = async (req, res) => {
                 $match: {
                     chain_status: "pulled",
                     latitude: { $ne: "0" },
-longitude: { $ne: "0" }
+                    longitude: { $ne: "0" }
                 }
             },
 
