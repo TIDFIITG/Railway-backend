@@ -182,7 +182,10 @@ export const getTrainDetails = async (req, res) => {
 };
 
 // Fetch available coach UIDs under the train name or train number
+
+
 export const getAvailableCoaches = async (req, res) => {
+    console.log("🔥 getAvailableCoaches called");
     try {
         const { train_Name, train_Number } = req.body;
 
@@ -213,9 +216,19 @@ export const getAvailableCoaches = async (req, res) => {
             coach_name: coach.coach_name
         }));
 
-        // Check which coaches have active train entries
-        const activeCoachUIDs = await Train.distinct('coach_uid', { division: division._id });
+        // Check which coaches have had a chain pull in the last 1 hour
+        const ACTIVE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+        const activeSince = new Date(Date.now() - ACTIVE_DURATION_MS);
 
+        console.log("Active Since:", activeSince);
+
+        const activeCoachUIDs = await Train.distinct('coach_uid', {
+            division: division._id,
+            chain_status: "pulled",
+            createdAt: { $gte: activeSince }
+        });
+
+        console.log("Active Coach UIDs:", activeCoachUIDs);
         const coachesWithStatus = availableCoaches.map(coach => ({
             ...coach,
             hasActiveEntries: activeCoachUIDs.includes(coach.uid)
