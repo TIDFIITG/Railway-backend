@@ -21,9 +21,13 @@ const UserAuth = async (req, res, next) => {
 
         // Attach the user ID to the request object
         if (tokenDecoder.id) {
-            req.userId = tokenDecoder.id; // Attach userId to req
+            req.userId = tokenDecoder.id;
+            req.role = tokenDecoder.role; // 👈 Add this line
         } else {
-            return res.status(401).json({ success: false, message: "Invalid token. Please log in again." });
+            return res.status(401).json({
+                success: false,
+                message: "Invalid token. Please log in again."
+            });
         }
 
         // Proceed to the next middleware or route
