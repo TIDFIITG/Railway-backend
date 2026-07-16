@@ -883,3 +883,80 @@ export const removeCoachFromDivision = async (req, res) => {
         res.status(500).json({ message: "An error occurred while removing the coach", error: error.message });
     }
 };
+
+
+// Transfer Coach from one train to another
+export const transferCoach = async (req, res) => {
+    try {
+
+        const { coach_uid, fromDivisionId, toDivisionId } = req.body;
+
+        // Validate request
+        if (!coach_uid || !fromDivisionId || !toDivisionId) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields."
+            });
+        }
+
+        // Find both trains
+        const fromDivision = await Division.findById(fromDivisionId);
+        const toDivision = await Division.findById(toDivisionId);
+
+        if (!fromDivision || !toDivision) {
+            return res.status(404).json({
+                success: false,
+                message: "Train not found."
+            });
+        }
+
+        // Find the coach in the current train
+        const coach = fromDivision.coach_uid.find(
+            (c) => c.uid === coach_uid
+        );
+
+        if (!coach) {
+            return res.status(404).json({
+                success: false,
+                message: "Coach not found."
+            });
+        }
+
+        // Prevent duplicate coach UID in destination train
+        const alreadyExists = toDivision.coach_uid.some(
+            (c) => c.uid === coach_uid
+        );
+
+        if (alreadyExists) {
+            return res.status(400).json({
+                success: false,
+                message: "Coach already exists in the selected train."
+            });
+        }
+
+        // Remove from current train
+        fromDivision.coach_uid = fromDivision.coach_uid.filter(
+            (c) => c.uid !== coach_uid
+        );
+
+        // Add to destination train
+        toDivision.coach_uid.push(coach);
+
+        // Save both documents
+        await fromDivision.save();
+        await toDivision.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Coach transferred successfully."
+        });
+
+    } catch (error) {
+        console.error("Transfer Coach Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to transfer coach."
+        });
+    }
+};

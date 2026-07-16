@@ -8,7 +8,8 @@ import {
     getRecentlyAddedDivisions, 
     getDivisionById,
     addCoachToDivision,
-    removeCoachFromDivision
+    removeCoachFromDivision,
+    transferCoach
 } from "../controller/DivisionController.js";
 
 const divisionRouter = express.Router();
@@ -24,5 +25,6 @@ divisionRouter.get('/division-id/:id', getDivisionById); // get division by id
 // Coach management routes
 divisionRouter.post('/division/:id/add-coach', userAuth, addCoachToDivision); // add coach to division
 divisionRouter.delete('/division/:id/remove-coach/:uid', userAuth, removeCoachFromDivision); // remove coach from division
+divisionRouter.post("/transfer-coach", userAuth, transferCoach); // transfer coach from one division to another
 
 export default divisionRouter;
