@@ -222,11 +222,14 @@ export const getAvailableCoaches = async (req, res) => {
 
         console.log("Active Since:", activeSince);
 
-        const activeCoachUIDs = await Train.distinct('coach_uid', {
-            division: division._id,
-            chain_status: "pulled",
-            createdAt: { $gte: activeSince }
-        });
+        const activeCoachUIDs = await Train.distinct('coach_uid', 
+            {
+                chain_status: "pulled",
+                createdAt: {
+                    $gte: activeSince
+                }
+            }
+        );
 
         console.log("Active Coach UIDs:", activeCoachUIDs);
         const coachesWithStatus = availableCoaches.map(coach => ({
