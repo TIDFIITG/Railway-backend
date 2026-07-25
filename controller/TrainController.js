@@ -49,6 +49,8 @@ export const addTrainDetails = async (req, res) => {
             return res.status(400).json({ message: "Coach UID is required." });
         }
 
+        console.log(req.body);
+        
         // Create a new train entry (validation will be handled by the model's pre-save middleware)
         const newTrain = new Train({
             coach_uid,
