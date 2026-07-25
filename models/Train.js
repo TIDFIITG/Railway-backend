@@ -31,7 +31,6 @@ const trainSchema = new mongoose.Schema({
 
     event_type: {
     type: String,
-    enum: ["ACP", "FSDS"],
     },
 
     temperature: {

@@ -41,8 +41,19 @@ const sendChainStatusEmail = async (train) => {
 // Add data (Train Details)
 export const addTrainDetails = async (req, res) => {
     try {
-        const { coach_uid, chain_status, latitude, longitude, temperature, error, memory, humidity, date, time } = req.body;
-
+        const {
+            coach_uid,
+            chain_status,
+            event_type,
+            latitude,
+            longitude,
+            temperature,
+            error,
+            memory,
+            humidity,
+            date,
+            time
+        } = req.body;
         // Validate required fields
         if (!coach_uid) {
             await logActivity(`Add Train Details: Missing required field - coach_uid: ${coach_uid}`, 'warning');
