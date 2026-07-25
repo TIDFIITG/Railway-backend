@@ -53,6 +53,7 @@ export const addTrainDetails = async (req, res) => {
         const newTrain = new Train({
             coach_uid,
             chain_status,
+            event_type,
             latitude,
             longitude,
             temperature,
@@ -62,7 +63,6 @@ export const addTrainDetails = async (req, res) => {
             date,
             time
         });
-
         try {
             const savedTrain = await newTrain.save();
             

@@ -28,6 +28,13 @@ const trainSchema = new mongoose.Schema({
         default: "normal",
         enum: ["normal", "pulled"],
     },
+
+    event_type: {
+    type: String,
+    enum: ["ACP", "FSDS"],
+    required: true,
+    },
+
     temperature: {
         type: String,
     },
