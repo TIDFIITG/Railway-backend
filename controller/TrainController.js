@@ -537,6 +537,8 @@ export const getDashboardStats = async (req, res) => {
         const [
             todayChainPulls,
             weeklyChainPulls,
+            todayFsds,
+            weeklyFsds,
             activeTrains
         ] = await Promise.all([
 
@@ -554,6 +556,22 @@ export const getDashboardStats = async (req, res) => {
                 }
             }),
 
+            Train.countDocuments({
+                chain_status: "pulled",
+                event_type: "FSDS",
+                createdAt: {
+                    $gte: today
+                }
+            }),
+
+            Train.countDocuments({
+                chain_status: "pulled",
+                event_type: "FSDS",
+                createdAt: {
+                    $gte: lastWeek
+                }
+            }),
+
             Division.countDocuments()
 
         ]);
@@ -563,11 +581,13 @@ export const getDashboardStats = async (req, res) => {
             data: {
                 todayChainPulls,
                 weeklyChainPulls,
+                todayFsds,
+                weeklyFsds,
                 activeTrains,
                 averageResponseTime: "N/A"
             }
         });
-
+        
     } 
     catch (error) {
     console.error(error);
