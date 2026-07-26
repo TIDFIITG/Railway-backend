@@ -369,24 +369,6 @@ export const getActiveChainPulls = async (req, res) => {
                 }
             },
             {
-                $group: {
-                    _id: {
-                        coach_uid: "$coach_uid",
-                        event_type: "$event_type"
-                    },
-                    latestRecord: {
-                        $first: "$$ROOT"
-                    }
-                }
-            },
-
-            {
-                $replaceRoot: {
-                    newRoot: "$latestRecord"
-                }
-            },
-
-            {
                 $lookup: {
                     from: "divisions",
                     localField: "division",
