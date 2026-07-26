@@ -348,11 +348,18 @@ export const getActiveChainPulls = async (req, res) => {
         // Get the most recent entry for each coach_uid with pulled status
         const activeAlerts = await Train.aggregate([
 
-            {
+         {
                 $match: {
                     chain_status: "pulled",
                     latitude: { $ne: "0" },
                     longitude: { $ne: "0" }
+                }
+            },
+            {
+                $addFields: {
+                    event_type: {
+                        $ifNull: ["$event_type", "ACP"]
+                    }
                 }
             },
 
@@ -361,10 +368,12 @@ export const getActiveChainPulls = async (req, res) => {
                     createdAt: -1
                 }
             },
-
             {
                 $group: {
-                    _id: "$coach_uid",
+                    _id: {
+                        coach_uid: "$coach_uid",
+                        event_type: "$event_type"
+                    },
                     latestRecord: {
                         $first: "$$ROOT"
                     }
@@ -448,6 +457,7 @@ export const getActiveChainPulls = async (req, res) => {
             },
 
         ]);
+        console.log(JSON.stringify(activeAlerts.slice(0, 3), null, 2));
 
         res.status(200).json({
             success: true,
