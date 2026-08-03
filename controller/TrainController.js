@@ -8,6 +8,9 @@ import jwt from 'jsonwebtoken'; // Needed for decoding token if you want userId 
 // In-memory store to track which alerts have been sent to frontend
 const sentAlerts = new Set();
 
+
+const UPLOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minute
+
 // Function to send an email to all users when chain status is pulled
 const sendChainStatusEmail = async (train) => {
     try {
@@ -61,6 +64,22 @@ export const addTrainDetails = async (req, res) => {
         }
 
         console.log(req.body);
+
+        const lastRecord = await Train.findOne({
+            coach_uid: req.body.coach_uid
+        }).sort({ createdAt: -1 });
+
+        if (lastRecord) {
+            const timeDifference =
+                Date.now() - new Date(lastRecord.createdAt).getTime();
+
+            if (timeDifference < UPLOAD_COOLDOWN_MS) {
+                return res.status(200).json({
+                    status: "Success",
+                    message: "Upload ignored (cooldown active)."
+                });
+            }
+        }
         
         // Create a new train entry (validation will be handled by the model's pre-save middleware)
         const newTrain = new Train({
