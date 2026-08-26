@@ -9,8 +9,8 @@ import jwt from 'jsonwebtoken'; // Needed for decoding token if you want userId 
 const sentAlerts = new Set();
 
 
-const UPLOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
-const lastAttemptMap = new Map();
+// const UPLOAD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+// const lastAttemptMap = new Map();
 
 // Function to send an email to all users when chain status is pulled
 const sendChainStatusEmail = async (train) => {
@@ -64,25 +64,25 @@ export const addTrainDetails = async (req, res) => {
             return res.status(400).json({ message: "Coach UID is required." });
         }
 
-        const now = Date.now();
+        // const now = Date.now();
 
-        const lastAttempt = lastAttemptMap.get(coach_uid);
+        // const lastAttempt = lastAttemptMap.get(coach_uid);
 
-        if (lastAttempt && (now - lastAttempt) < UPLOAD_COOLDOWN_MS) {
+        // if (lastAttempt && (now - lastAttempt) < UPLOAD_COOLDOWN_MS) {
 
-            // Update the last attempted upload time
-            lastAttemptMap.set(coach_uid, now);
+        //     // Update the last attempted upload time
+        //     lastAttemptMap.set(coach_uid, now);
 
-            await logActivity(
-                `Upload ignored for Coach UID ${coach_uid}. Cooldown active.`,
-                "info"
-            );
+        //     await logActivity(
+        //         `Upload ignored for Coach UID ${coach_uid}. Cooldown active.`,
+        //         "info"
+        //     );
 
-            return res.status(200).json({
-                status: "Success",
-                message: "Upload ignored (cooldown active)."
-            });
-        }
+        //     return res.status(200).json({
+        //         status: "Success",
+        //         message: "Upload ignored (cooldown active)."
+        //     });
+        // }
         
 
         // Create a new train entry (validation will be handled by the model's pre-save middleware)
@@ -102,7 +102,7 @@ export const addTrainDetails = async (req, res) => {
         try {
             const savedTrain = await newTrain.save();
 
-            lastAttemptMap.set(coach_uid, now);
+            // lastAttemptMap.set(coach_uid, now);
             
             // Populate division data to get coach name and other details
             await savedTrain.populateCoachDetails();
