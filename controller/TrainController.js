@@ -177,41 +177,26 @@ export const addTrainDetails = async (req, res) => {
     }
 };
 
-// Fetch train details by coach_uid (scoped to a specific train, since coach_uid
-// numbers get reassigned across divisions over time and are not globally unique)
+// Fetch train details by coach_uid. Returns the coach_uid's full history,
+// including readings from before it was reassigned to a different train —
+// each record carries its own division/train info via populateCoachDetails().
 export const getTrainDetails = async (req, res) => {
     try {
-        const { coach_uid, train_Number } = req.query;
+        const { coach_uid } = req.query;
 
         if (!coach_uid) {
             await logActivity(`Get Train Details: Missing coach UID in query.`, 'warning');
             return res.status(400).json({ message: "Coach UID is required." });
         }
 
-        const query = {
+        const trains = await Train.find({
             coach_uid,
             latitude: { $ne: "0" },
             longitude: { $ne: "0" }
-        };
-
-        // Scope results to the division/train the coach_uid currently belongs to,
-        // so historical records from a previous reassignment of this coach_uid
-        // to a different train don't leak into the response.
-        if (train_Number) {
-            const division = await Division.findOne({ train_Number });
-
-            if (!division) {
-                await logActivity(`Get Train Details: No division found for Train Number: ${train_Number}.`, 'info');
-                return res.status(404).json({ message: "No train found for the given train number." });
-            }
-
-            query.division = division._id;
-        }
-
-        const trains = await Train.find(query);
+        });
 
         if (trains.length === 0) {
-            await logActivity(`Get Train Details: No details found for Coach UID: ${coach_uid}${train_Number ? `, Train Number: ${train_Number}` : ''}.`, 'info');
+            await logActivity(`Get Train Details: No details found for Coach UID: ${coach_uid}.`, 'info');
             return res.status(404).json({ message: "Train details not found for the given coach UID." });
         }
 
