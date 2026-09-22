@@ -214,6 +214,41 @@ export const getTrainDetails = async (req, res) => {
     }
 };
 
+// Fetch which train/division a coach_uid is CURRENTLY assigned to — a live
+// lookup, unlike getTrainDetails which returns frozen historical snapshots.
+// Used for "who is this coach right now" (e.g. the Coach Details page header),
+// as opposed to "what did this reading say at the time" (the data table).
+export const getCurrentAssignment = async (req, res) => {
+    try {
+        const { coach_uid } = req.query;
+
+        if (!coach_uid) {
+            return res.status(400).json({ message: "Coach UID is required." });
+        }
+
+        const division = await Division.findOne({ 'coach_uid.uid': coach_uid });
+
+        if (!division) {
+            return res.status(404).json({ message: "This coach is not currently assigned to any train." });
+        }
+
+        const coach = division.coach_uid.find(c => c.uid === coach_uid);
+
+        res.status(200).json({
+            coach_uid,
+            coach_name: coach ? coach.coach_name : null,
+            train_Name: division.train_Name,
+            train_Number: division.train_Number,
+        });
+    } catch (error) {
+        console.error("Error fetching current coach assignment:", error);
+        res.status(500).json({
+            message: "An error occurred while fetching the coach's current assignment",
+            error: error.message
+        });
+    }
+};
+
 // Fetch available coach UIDs under the train name or train number
 
 

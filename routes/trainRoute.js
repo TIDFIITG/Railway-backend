@@ -2,6 +2,7 @@ import express from 'express';
 import {
       addTrainDetails,
       getTrainDetails,
+      getCurrentAssignment,
       getAvailableCoaches,
       getActiveChainPulls,
       getChainStatusStats,
@@ -18,6 +19,9 @@ trainRouter.post('/add-coach-data', addTrainDetails);
 
 // Fetch train details dynamically
 trainRouter.get('/get-coach-data', getTrainDetails);
+
+// Fetch which train a coach_uid is CURRENTLY assigned to (live, not historical)
+trainRouter.get('/current-assignment', getCurrentAssignment);
 
 // Fetch available coaches for a train
 trainRouter.post('/get-coach', getAvailableCoaches);
