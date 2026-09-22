@@ -40,6 +40,21 @@ const trainSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Division",
     },
+    // Snapshot of the coach/train identity at the moment this record was created.
+    // Stored (not derived) so it stays accurate even after the coach is later
+    // reassigned to a different train and the division's coach list changes.
+    coach_name: {
+        type: String,
+        default: null,
+    },
+    train_Name: {
+        type: String,
+        default: null,
+    },
+    train_Number: {
+        type: String,
+        default: null,
+    },
     error: {
         type: String,
         default: "000",
@@ -63,55 +78,41 @@ trainSchema.index({ coach_uid: 1 });
 trainSchema.index({ division: 1 });
 trainSchema.index({ coach_uid: 1, division: 1 }); // Compound index
 
-// Pre-save middleware to validate that the coach_uid exists in Division and set division reference
+// Pre-save middleware to validate that the coach_uid exists in Division, set the
+// division reference, and snapshot the coach/train identity onto the record itself.
 trainSchema.pre('save', async function(next) {
     if (this.coach_uid) {
         try {
             const Division = mongoose.model('Division');
-            
+
             // Find the division that contains this coach_uid
             const division = await Division.findOne({
                 'coach_uid.uid': this.coach_uid
             });
-            
+
             if (!division) {
                 const error = new Error(`Coach UID ${this.coach_uid} not found in any division. Please check again.`);
                 error.name = 'ValidationError';
                 return next(error);
             }
-            
+
             // Set the division ObjectId
             this.division = division._id;
+
+            // Freeze the coach/train identity as of right now. Once set, don't
+            // overwrite it on future saves of the same document — this is a
+            // point-in-time snapshot, not a live-derived value.
+            if (this.isNew) {
+                const coach = division.coach_uid.find(c => c.uid === this.coach_uid);
+                this.coach_name = coach ? coach.coach_name : null;
+                this.train_Name = division.train_Name;
+                this.train_Number = division.train_Number;
+            }
         } catch (err) {
             return next(err);
         }
     }
     next();
-});
-
-// Virtual to get coach name from Division
-trainSchema.virtual('coach_name').get(function() {
-    if (this.populated('division') && this.division && this.division.coach_uid) {
-        const coach = this.division.coach_uid.find(c => c.uid === this.coach_uid);
-        return coach ? coach.coach_name : null;
-    }
-    return null;
-});
-
-// Virtual to get train number from Division
-trainSchema.virtual('train_Number').get(function() {
-    if (this.populated('division') && this.division) {
-        return this.division.train_Number;
-    }
-    return null;
-});
-
-// Virtual to get train name from Division
-trainSchema.virtual('train_Name').get(function() {
-    if (this.populated('division') && this.division) {
-        return this.division.train_Name;
-    }
-    return null;
 });
 
 // Method to populate coach details and division information

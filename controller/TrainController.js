@@ -22,8 +22,7 @@ const sendChainStatusEmail = async (train) => {
             return;
         }
 
-        // Populate division data to get train and coach information
-        await train.populateCoachDetails();
+        // coach_name/train_Number are snapshotted on the record itself at save time
         const coachName = train.coach_name || train.coach_uid;
         const trainNumber = train.train_Number || 'Unknown';
 
@@ -103,10 +102,9 @@ export const addTrainDetails = async (req, res) => {
             const savedTrain = await newTrain.save();
 
             // lastAttemptMap.set(coach_uid, now);
-            
-            // Populate division data to get coach name and other details
-            await savedTrain.populateCoachDetails();
-            
+
+            // coach_name/train_Name/train_Number were snapshotted onto savedTrain
+            // by the model's pre-save hook — no populate needed here.
             // Get coach name and train details for alert
             const coachName = savedTrain.coach_name || coach_uid;
             const trainNumber = savedTrain.train_Number || 'Unknown';
@@ -178,8 +176,9 @@ export const addTrainDetails = async (req, res) => {
 };
 
 // Fetch train details by coach_uid. Returns the coach_uid's full history,
-// including readings from before it was reassigned to a different train —
-// each record carries its own division/train info via populateCoachDetails().
+// including readings from before it was reassigned to a different train.
+// Each record's coach_name/train_Name/train_Number is a snapshot taken when
+// it was saved, so reassigning the coach later doesn't alter past records.
 export const getTrainDetails = async (req, res) => {
     try {
         const { coach_uid } = req.query;
@@ -200,15 +199,10 @@ export const getTrainDetails = async (req, res) => {
             return res.status(404).json({ message: "Train details not found for the given coach UID." });
         }
 
-        // Populate coach details for each train
-        const populatedTrains = await Promise.all(
-            trains.map(train => train.populateCoachDetails())
-        );
-
         await logActivity(`Fetched train details for Coach UID: ${coach_uid}.`, 'info');
         res.status(200).json({
             message: "Train details fetched successfully!",
-            train: populatedTrains
+            train: trains
         });
     } catch (error) {
         await logActivity(`Get Train Details: An error occurred for Coach UID: ${req.query.coach_uid}. Error: ${error.message}`, 'error');
@@ -371,7 +365,11 @@ export const getActiveChainPulls = async (req, res) => {
     try {
     console.log("ACTIVE CHAIN PULLS FUNCTION RUNNING");
 
-        // Get the most recent entry for each coach_uid with pulled status
+        // Get the most recent entry for each coach_uid with pulled status.
+        // train_Name/train_Number/coach_name are read straight off each record —
+        // they're a snapshot taken when it was saved (see Train.js pre-save hook),
+        // so a later coach reassignment can't retroactively change what an
+        // existing alert says.
         const activeAlerts = await Train.aggregate([
 
          {
@@ -408,69 +406,6 @@ export const getActiveChainPulls = async (req, res) => {
             {
                 $replaceRoot: {
                     newRoot: "$latestRecord"
-                }
-            },
-            {
-                $lookup: {
-                    from: "divisions",
-                    localField: "division",
-                    foreignField: "_id",
-                    as: "divisionData"
-                }
-            },
-
-            {
-                $addFields: {
-
-                    train_Name: {
-                        $arrayElemAt: [
-                            "$divisionData.train_Name",
-                            0
-                        ]
-                    },
-
-                    train_Number: {
-                        $arrayElemAt: [
-                            "$divisionData.train_Number",
-                            0
-                        ]
-                    },
-
-                    coach_name: {
-                        $let: {
-                            vars: {
-                                coach: {
-                                    $arrayElemAt: [
-                                        {
-                                            $filter: {
-                                                input: {
-                                                    $arrayElemAt: [
-                                                        "$divisionData.coach_uid",
-                                                        0
-                                                    ]
-                                                },
-                                                cond: {
-                                                    $eq: [
-                                                        "$$this.uid",
-                                                        "$coach_uid"
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                        0
-                                    ]
-                                }
-                            },
-                            in: "$$coach.coach_name"
-                        }
-                    }
-
-                }
-            },
-
-            {
-                $project: {
-                    divisionData: 0
                 }
             },
 
