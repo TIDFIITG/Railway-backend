@@ -341,11 +341,13 @@ export const getRecentChainStatus = async (req, res) => {
             longitude: { $ne: "0" }
         }).lean();
 
-        const recentData = pulledRecords
-            .map((record) => ({ ...record, _eventTs: parseEventTimestamp(record) }))
-            .sort((a, b) => b._eventTs - a._eventTs)
-            .slice(0, LIVE_MAP_MARKER_LIMIT)
-            .map(({ _eventTs, ...rest }) => rest);
+        const recentData = await applyCurrentAssignment(
+            pulledRecords
+                .map((record) => ({ ...record, _eventTs: parseEventTimestamp(record) }))
+                .sort((a, b) => b._eventTs - a._eventTs)
+                .slice(0, LIVE_MAP_MARKER_LIMIT)
+                .map(({ _eventTs, ...rest }) => rest)
+        );
 
         res.status(200).json({
             success: true,
@@ -381,6 +383,33 @@ const parseEventTimestamp = (record) => {
     }
 };
 
+// Overlay each record with the train/coach name the coach_uid is assigned to
+// RIGHT NOW, so alerts follow a coach when it's reassigned to another train.
+// Done at read time (no database rewrite): the stored snapshot on each record
+// is left untouched and still used as a fallback for coaches that are not
+// currently in any train's roster.
+const applyCurrentAssignment = async (records) => {
+    const divisions = await Division.find({}, { train_Name: 1, train_Number: 1, coach_uid: 1 }).lean();
+
+    const currentByUid = new Map();
+    for (const division of divisions) {
+        for (const coach of division.coach_uid || []) {
+            if (!currentByUid.has(coach.uid)) {
+                currentByUid.set(coach.uid, {
+                    train_Name: division.train_Name,
+                    train_Number: division.train_Number,
+                    coach_name: coach.coach_name,
+                });
+            }
+        }
+    }
+
+    return records.map((record) => {
+        const current = currentByUid.get(record.coach_uid);
+        return current ? { ...record, ...current } : record;
+    });
+};
+
 // Modified function to return only NEW chain pull alerts (one-time process)
 export const getActiveChainPulls = async (req, res) => {
 
@@ -413,9 +442,11 @@ export const getActiveChainPulls = async (req, res) => {
             }
         }
 
-        const activeAlerts = Array.from(latestPerCoach.values())
-            .sort((a, b) => b._eventTs - a._eventTs)
-            .map(({ _eventTs, ...rest }) => rest);
+        const activeAlerts = await applyCurrentAssignment(
+            Array.from(latestPerCoach.values())
+                .sort((a, b) => b._eventTs - a._eventTs)
+                .map(({ _eventTs, ...rest }) => rest)
+        );
 
         console.log(JSON.stringify(activeAlerts.slice(0, 3), null, 2));
 
