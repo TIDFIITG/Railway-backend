@@ -330,7 +330,7 @@ export const getAvailableCoaches = async (req, res) => {
 // duplicate pins; showing only 1-per-coach (62) felt too sparse. This is a
 // middle ground: the N most recent events overall, ranked by actual event
 // time — a coach with several recent incidents can show more than one pin.
-const LIVE_MAP_MARKER_LIMIT = 150;
+const LIVE_MAP_MARKER_LIMIT = 200;
 
 export const getRecentChainStatus = async (req, res) => {
 
