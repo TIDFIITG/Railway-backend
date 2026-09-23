@@ -328,53 +328,28 @@ export const getAvailableCoaches = async (req, res) => {
 export const getRecentChainStatus = async (req, res) => {
 
     try {
+        // One marker per coach — its single most recent real event — not every
+        // historical "pulled" record ever logged. Without this, a coach with
+        // months of history (or a device that just flushed an offline backlog)
+        // plots dozens of near-duplicate pins instead of one current location.
+        const pulledRecords = await Train.find({
+            chain_status: "pulled",
+            latitude: { $ne: "0" },
+            longitude: { $ne: "0" }
+        }).lean();
 
-        const recentData = await Train.aggregate([
-            {
-                $match: {
-                    latitude: { $ne: "0" },
-                    longitude: { $ne: "0" }
-                }
-            },
+        const latestPerCoach = new Map();
+        for (const record of pulledRecords) {
+            const eventTs = parseEventTimestamp(record);
+            const existing = latestPerCoach.get(record.coach_uid);
+            if (!existing || eventTs > existing._eventTs) {
+                latestPerCoach.set(record.coach_uid, { ...record, _eventTs: eventTs });
+            }
+        }
 
-            {
-                $sort: { createdAt: -1 }
-            },
-
-            {
-                $lookup: {
-                    from: "divisions",
-                    localField: "division",
-                    foreignField: "_id",
-                    as: "divisionData"
-                }
-            },
-
-            {
-                $addFields: {
-                    train_Name: {
-                        $arrayElemAt: [
-                            "$divisionData.train_Name",
-                            0
-                        ]
-                    },
-
-                    train_Number: {
-                        $arrayElemAt: [
-                            "$divisionData.train_Number",
-                            0
-                        ]
-                    }
-                }
-            },
-
-            {
-                $project: {
-                    divisionData: 0
-                }
-            },
-
-        ]);
+        const recentData = Array.from(latestPerCoach.values())
+            .sort((a, b) => b._eventTs - a._eventTs)
+            .map(({ _eventTs, ...rest }) => rest);
 
         res.status(200).json({
             success: true,
