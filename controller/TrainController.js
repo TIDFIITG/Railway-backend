@@ -325,30 +325,26 @@ export const getAvailableCoaches = async (req, res) => {
 };
 
 // Fetch recent chain status updates for dashboard (limit to 5 most recent)
+// How many of the most recent events to plot on the Live Map. Showing every
+// historical record ever logged (1,490+ at last count) buried the map in
+// duplicate pins; showing only 1-per-coach (62) felt too sparse. This is a
+// middle ground: the N most recent events overall, ranked by actual event
+// time — a coach with several recent incidents can show more than one pin.
+const LIVE_MAP_MARKER_LIMIT = 150;
+
 export const getRecentChainStatus = async (req, res) => {
 
     try {
-        // One marker per coach — its single most recent real event — not every
-        // historical "pulled" record ever logged. Without this, a coach with
-        // months of history (or a device that just flushed an offline backlog)
-        // plots dozens of near-duplicate pins instead of one current location.
         const pulledRecords = await Train.find({
             chain_status: "pulled",
             latitude: { $ne: "0" },
             longitude: { $ne: "0" }
         }).lean();
 
-        const latestPerCoach = new Map();
-        for (const record of pulledRecords) {
-            const eventTs = parseEventTimestamp(record);
-            const existing = latestPerCoach.get(record.coach_uid);
-            if (!existing || eventTs > existing._eventTs) {
-                latestPerCoach.set(record.coach_uid, { ...record, _eventTs: eventTs });
-            }
-        }
-
-        const recentData = Array.from(latestPerCoach.values())
+        const recentData = pulledRecords
+            .map((record) => ({ ...record, _eventTs: parseEventTimestamp(record) }))
             .sort((a, b) => b._eventTs - a._eventTs)
+            .slice(0, LIVE_MAP_MARKER_LIMIT)
             .map(({ _eventTs, ...rest }) => rest);
 
         res.status(200).json({
