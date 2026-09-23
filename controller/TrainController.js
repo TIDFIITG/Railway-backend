@@ -394,63 +394,58 @@ export const getRecentChainStatus = async (req, res) => {
 
 };
 
+// Parse a record's own device-reported date/time ("D/M/YYYY" + "H:M:S", IST)
+// into a comparable timestamp. Falls back to createdAt if the device fields
+// are missing or malformed, so one bad record can't break sorting for everyone.
+const parseEventTimestamp = (record) => {
+    try {
+        const [day, month, year] = (record.date || "").split("/").map(Number);
+        const [hour = 0, minute = 0, second = 0] = (record.time || "").split(":").map(Number);
+        if (!day || !month || !year) throw new Error("incomplete date");
+        const ts = Date.UTC(year, month - 1, day, hour, minute, second);
+        if (Number.isNaN(ts)) throw new Error("invalid date");
+        return ts;
+    } catch {
+        return new Date(record.createdAt).getTime();
+    }
+};
+
 // Modified function to return only NEW chain pull alerts (one-time process)
 export const getActiveChainPulls = async (req, res) => {
 
     try {
     console.log("ACTIVE CHAIN PULLS FUNCTION RUNNING");
 
-        // Get the most recent entry for each coach_uid with pulled status.
-        // train_Name/train_Number/coach_name are read straight off each record —
-        // they're a snapshot taken when it was saved (see Train.js pre-save hook),
-        // so a later coach reassignment can't retroactively change what an
-        // existing alert says.
-        const activeAlerts = await Train.aggregate([
+        // Get every "pulled" record, then rank and dedupe by the ACTUAL event
+        // time (device date/time), not upload time (createdAt). A device that
+        // was offline can upload a backlog of old readings all at once — if we
+        // ranked by createdAt, that upload burst would wrongly bump old events
+        // to the top of "recent" alerts. train_Name/train_Number/coach_name
+        // are read straight off each record — a snapshot taken when it was
+        // saved (see Train.js pre-save hook) — so a later coach reassignment
+        // can't retroactively change what an existing alert says.
+        const pulledRecords = await Train.find({
+            chain_status: "pulled",
+            latitude: { $ne: "0" },
+            longitude: { $ne: "0" }
+        }).lean();
 
-         {
-                $match: {
-                    chain_status: "pulled",
-                    latitude: { $ne: "0" },
-                    longitude: { $ne: "0" }
-                }
-            },
-            {
-                $addFields: {
-                    event_type: {
-                        $ifNull: ["$event_type", "ACP"]
-                    }
-                }
-            },
+        const latestPerCoach = new Map();
+        for (const record of pulledRecords) {
+            const eventType = record.event_type || "ACP";
+            const key = `${record.coach_uid}::${eventType}`;
+            const eventTs = parseEventTimestamp(record);
 
-            {
-                $sort: {
-                    createdAt: -1
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        coach_uid: "$coach_uid",
-                        event_type: "$event_type"
-                    },
-                    latestRecord: {
-                        $first: "$$ROOT"
-                    }
-                }
-            },
-            {
-                $replaceRoot: {
-                    newRoot: "$latestRecord"
-                }
-            },
+            const existing = latestPerCoach.get(key);
+            if (!existing || eventTs > existing._eventTs) {
+                latestPerCoach.set(key, { ...record, event_type: eventType, _eventTs: eventTs });
+            }
+        }
 
-            {
-                $sort: {
-                    createdAt: -1
-                }
-            },
+        const activeAlerts = Array.from(latestPerCoach.values())
+            .sort((a, b) => b._eventTs - a._eventTs)
+            .map(({ _eventTs, ...rest }) => rest);
 
-        ]);
         console.log(JSON.stringify(activeAlerts.slice(0, 3), null, 2));
 
         res.status(200).json({
