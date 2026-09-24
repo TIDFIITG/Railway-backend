@@ -9,12 +9,10 @@ const divisionSchema = new mongoose.Schema(
         },
         states: {
             type: String,
-            required: true,
             trim: true
         },
         cities: {
             type: String,
-            required: true,
             trim: true
         },
         train_Name: {

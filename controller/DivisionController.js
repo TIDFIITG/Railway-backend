@@ -58,14 +58,12 @@ export const addDivision = async (req, res) => {
         console.log("=== END DESTRUCTURED VALUES ===");
 
         // Validate required fields first
-        if (!division || !states || !cities || !train_Name || !train_Number) {
+        if (!division || !train_Name || !train_Number) {
             await logActivity(`Add Division: Missing required fields by user ID ${userId}.`, 'warning', userId);
-            return res.status(400).json({ 
-                message: "All fields (division, states, cities, train_Name, train_Number) are required",
+            return res.status(400).json({
+                message: "All fields (zone, train_Name, train_Number) are required",
                 received: {
                     division: !!division,
-                    states: !!states,
-                    cities: !!cities,
                     train_Name: !!train_Name,
                     train_Number: !!train_Number
                 }
@@ -243,8 +241,8 @@ export const addDivision = async (req, res) => {
         // Create division data
         const divisionData = {
             division: division.trim(),
-            states: states.trim(),
-            cities: cities.trim(),
+            ...(states ? { states: states.trim() } : {}),
+            ...(cities ? { cities: cities.trim() } : {}),
             train_Name: train_Name.trim(),
             train_Number: train_Number.trim(),
             coach_uid: validatedCoachUid
